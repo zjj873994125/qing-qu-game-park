@@ -107,8 +107,7 @@ iOS Safari 可以导入 `.json` 文件。文件可以放在“文件”App、iCl
 - `positionList.categories`：列表分类枚举，key 是内部分类名，value 是页面显示名。
 - `positionList[分类名]`：和 `categories` 中 key 同名的字符串数组。
 - `suit`：`spades`、`hearts`、`diamonds`、`clubs`。
-- `rank`：`A`、`2` 到 `10`、`J`
-、`Q`、`K`。
+- `rank`：`A`、`2` 到 `10`、`J`、`Q`、`K`。
 - `level`：`light`、`stimulating`、`intense`。
 - `content`：牌面文案，不能为空。
 
@@ -117,6 +116,71 @@ iOS Safari 可以导入 `.json` 文件。文件可以放在“文件”App、iCl
 - `content-template.json`：空模板。
 - `content-import.json`：由当前三份 JSON 整合出的可导入文件。
 - `src/male-cards.json`、`src/female-cards.json`、`src/position-list.json`：历史拆分数据文件，当前应用运行时不直接读取。
+
+## GitHub Actions 部署
+
+仓库包含自动构建部署工作流：
+
+```text
+.github/workflows/deploy.yml
+```
+
+触发方式：
+
+- push 到 `main` 分支自动执行。
+- 在 GitHub Actions 页面手动执行 `Build and Deploy`。
+
+执行流程：
+
+1. 安装依赖：`npm ci`
+2. 运行测试：`npm test`
+3. 构建：`npm run build`
+4. 通过 SSH/rsync 把 `dist/` 发布到服务器目录。
+
+需要在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中配置：
+
+```text
+DEPLOY_HOST      服务器 IP 或域名
+DEPLOY_USER      SSH 用户名
+DEPLOY_SSH_KEY   SSH 私钥
+DEPLOY_PATH      服务器部署目录，例如 /var/www/desire-poker
+```
+
+服务器需要提前准备：
+
+- `DEPLOY_USER` 可以 SSH 登录服务器。
+- `DEPLOY_USER` 对 `DEPLOY_PATH` 有写入权限。
+- 服务器已安装并配置 Nginx 或其他静态 Web 服务，站点根目录指向 `DEPLOY_PATH`。
+
+当前项目按子路径部署配置，访问地址形如：
+
+```text
+http://elevator.cluehub.pankiss.cn/poker/
+```
+
+对应 GitHub Secret：
+
+```text
+DEPLOY_PATH=/opt/desire-poker
+```
+
+Nginx 可以加在已有 `elevator.cluehub.pankiss.cn` 的 `server` 中，且要放在 `location /` 前面：
+
+```nginx
+location = /poker {
+    return 301 /poker/;
+}
+
+location /poker/ {
+    alias /opt/desire-poker/;
+    index index.html;
+    try_files $uri $uri/ /poker/index.html;
+}
+```
+
+项目的 Vite `base` 已设置为 `/poker/`，静态资源路径也会跟随这个子路径。
+
+只会发布 `dist/` 里的构建产物。`content-import.json` 已在 `.gitignore` 中忽略，不会被提交和部署。
 
 ## 注意
 

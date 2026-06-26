@@ -17,7 +17,8 @@ import {
   suitLabels,
 } from './cardData';
 
-const cardBackUrl = '/assets/card-back.png';
+const assetUrl = (path: string) => `${import.meta.env.BASE_URL}${path}`;
+const cardBackUrl = assetUrl('assets/card-back.png');
 const flipDurationMs = 760;
 const drawDurationMs = 820;
 const shakeCooldownMs = 1150;
@@ -32,10 +33,10 @@ const emptyContent: ImportedGameContent = {
 };
 
 const suitImageBySuit: Record<Suit, string> = {
-  hearts: '/assets/suit-hearts.png',
-  diamonds: '/assets/suit-diamonds.png',
-  clubs: '/assets/suit-clubs.png',
-  spades: '/assets/suit-spades.png',
+  hearts: assetUrl('assets/suit-hearts.png'),
+  diamonds: assetUrl('assets/suit-diamonds.png'),
+  clubs: assetUrl('assets/suit-clubs.png'),
+  spades: assetUrl('assets/suit-spades.png'),
 };
 
 const levelCopy: Record<Level, string> = {
