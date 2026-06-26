@@ -15,7 +15,10 @@ import {
   genderVersionLabels,
   levels,
   levelLabels,
+  normalizeGenderVersion,
+  normalizeLevel,
   parseImportedGameContent,
+  splitTextByPunctuation,
   suitLabels,
 } from './cardData';
 
@@ -24,6 +27,8 @@ const cardBackUrl = assetUrl('assets/card-back.png');
 const flipDurationMs = 760;
 const drawDurationMs = 820;
 const contentStorageKey = 'desire-poker-imported-content-v1';
+const levelStorageKey = 'desire-poker-selected-level-v1';
+const versionStorageKey = 'desire-poker-selected-version-v1';
 type AppView = 'cards' | 'list';
 
 const emptyContent: ImportedGameContent = {
@@ -63,6 +68,30 @@ function readStoredContent(): ImportedGameContent {
   }
 }
 
+function readStoredLevel(): Level {
+  try {
+    return normalizeLevel(window.localStorage.getItem(levelStorageKey), 'light');
+  } catch {
+    return 'light';
+  }
+}
+
+function readStoredVersion(): GenderVersion {
+  try {
+    return normalizeGenderVersion(window.localStorage.getItem(versionStorageKey), 'male');
+  } catch {
+    return 'male';
+  }
+}
+
+function writeStoredPreference(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // 本地存储不可用时不阻塞游戏操作。
+  }
+}
+
 function CornerMark({ card, inverted = false }: { card: PokerCard; inverted?: boolean }) {
   return (
     <div
@@ -95,6 +124,8 @@ function CardFace({
   isContentVisible: boolean;
   onRevealContent: () => void;
 }) {
+  const contentLines = splitTextByPunctuation(card.content);
+
   return (
     <article className={`card-surface card-front card-front--${card.level}`}>
       <div className="card-paper-texture" />
@@ -102,7 +133,11 @@ function CardFace({
       <div className="card-content">
         <p className="level-label">{levelLabels[card.level]}</p>
         {isContentVisible ? (
-          <p className="desire-text">{card.content}</p>
+          <p className="desire-text">
+            {contentLines.map((line, index) => (
+              <span key={`${line}-${index}`}>{line}</span>
+            ))}
+          </p>
         ) : (
           <>
             <MaskedText />
@@ -204,8 +239,8 @@ function ImportPanel({
 function App() {
   const [importedContent, setImportedContent] = useState<ImportedGameContent>(readStoredContent);
   const [importStatus, setImportStatus] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState<Level>('light');
-  const [selectedVersion, setSelectedVersion] = useState<GenderVersion>('male');
+  const [selectedLevel, setSelectedLevel] = useState<Level>(readStoredLevel);
+  const [selectedVersion, setSelectedVersion] = useState<GenderVersion>(readStoredVersion);
   const [appView, setAppView] = useState<AppView>('cards');
   const [selectedPositionCategory, setSelectedPositionCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -301,6 +336,7 @@ function App() {
 
     setSelectedLevel((level) => {
       const nextLevel = getNextLevel(level);
+      writeStoredPreference(levelStorageKey, nextLevel);
       setCurrentCard(null);
       return nextLevel;
     });
@@ -313,7 +349,11 @@ function App() {
       return;
     }
 
-    setSelectedVersion((version) => (version === 'male' ? 'female' : 'male'));
+    setSelectedVersion((version) => {
+      const nextVersion = version === 'male' ? 'female' : 'male';
+      writeStoredPreference(versionStorageKey, nextVersion);
+      return nextVersion;
+    });
     setCurrentCard(null);
     setDrawCount(0);
     setGameState('idle');

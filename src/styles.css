@@ -382,17 +382,27 @@ button {
 }
 
 .desire-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(5px, 1.35vw, 9px);
   margin: 0;
-  max-width: min(12.5em, 100%);
+  max-width: min(13em, 100%);
   color: #2a1521;
-  font-family: "Songti SC", "Noto Serif SC", "STSong", "SimSun", Georgia, serif;
-  font-size: clamp(22px, 6.2vw, 32px);
-  font-weight: 700;
-  line-height: 1.38;
-  letter-spacing: 0;
-  overflow-wrap: anywhere;
-  text-wrap: balance;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, serif;
+  font-size: clamp(20px, 5.35vw, 28px);
+  font-weight: 650;
+  line-height: 1.42;
+  letter-spacing: 0.035em;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.44);
+}
+
+.desire-text span {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  padding-left: 0.035em;
+  text-wrap: balance;
 }
 
 .masked-content {

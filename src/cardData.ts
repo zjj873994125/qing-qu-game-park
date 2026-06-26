@@ -59,6 +59,24 @@ export function getSuitColor(suit: Suit): SuitColor {
   return suit === 'hearts' || suit === 'diamonds' ? 'red' : 'black';
 }
 
+export function normalizeLevel(value: unknown, fallback: Level): Level {
+  return levels.includes(value as Level) ? value as Level : fallback;
+}
+
+export function normalizeGenderVersion(value: unknown, fallback: GenderVersion): GenderVersion {
+  return genderVersions.includes(value as GenderVersion) ? value as GenderVersion : fallback;
+}
+
+export function splitTextByPunctuation(text: string): string[] {
+  const normalizedText = text.trim();
+  if (!normalizedText) {
+    return [];
+  }
+
+  const segments = normalizedText.match(/[^，。！？；、,.!?;…]+(?:……|[，。！？；、,.!?;])?/g) ?? [normalizedText];
+  return segments.map((segment) => segment.trim()).filter(Boolean);
+}
+
 export const standardPokerFaces = suits.flatMap((suit) => (
   ranks.map((rank) => ({ suit, rank }))
 ));

@@ -7,8 +7,11 @@ import {
   getSuitColor,
   isCardDeck,
   isPositionList,
+  normalizeGenderVersion,
+  normalizeLevel,
   levelLabels,
   parseImportedGameContent,
+  splitTextByPunctuation,
   suitLabels,
 } from './cardData';
 
@@ -189,6 +192,31 @@ describe('card data contract', () => {
   it('exposes labels for every supported suit and level', () => {
     expect(suitLabels.spades).toBe('黑桃');
     expect(levelLabels.stimulating).toBe('升温');
+  });
+
+  it('normalizes persisted preference values with safe fallbacks', () => {
+    expect(normalizeLevel('intense', 'light')).toBe('intense');
+    expect(normalizeLevel('unknown', 'light')).toBe('light');
+    expect(normalizeGenderVersion('female', 'male')).toBe('female');
+    expect(normalizeGenderVersion('other', 'male')).toBe('male');
+  });
+
+  it('splits visible card text by punctuation for cleaner line breaks', () => {
+    expect(splitTextByPunctuation('第一句，第二句，第三句')).toEqual([
+      '第一句，',
+      '第二句，',
+      '第三句',
+    ]);
+    expect(splitTextByPunctuation('第一句。第二句！第三句？')).toEqual([
+      '第一句。',
+      '第二句！',
+      '第三句？',
+    ]);
+    expect(splitTextByPunctuation('第一句……第二句……第三句')).toEqual([
+      '第一句……',
+      '第二句……',
+      '第三句',
+    ]);
   });
 
   it('maps suit colors to real poker red and black groups', () => {
