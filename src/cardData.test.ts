@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  drawRandomPokerFace,
   drawRandomCard,
   filterCardsByLevel,
   getActionLabel,
@@ -12,7 +13,17 @@ import {
 } from './cardData';
 
 describe('card data contract', () => {
-  it('accepts the expected cards json shape', () => {
+  it('accepts content-only card json shape', () => {
+    expect(
+      isCardDeck({
+        cards: [
+          { level: 'light', content: 'placeholder' },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('keeps compatibility with old card json that still has suit and rank', () => {
     expect(
       isCardDeck({
         cards: [
@@ -22,11 +33,27 @@ describe('card data contract', () => {
     ).toBe(true);
   });
 
-  it('rejects unknown suits, ranks, levels, and empty content', () => {
+  it('strips fixed suit and rank fields from imported old card json', () => {
+    expect(
+      parseImportedGameContent({
+        maleCards: [
+          { suit: 'spades', rank: 'A', level: 'light', content: 'old shape' },
+        ],
+      }),
+    ).toEqual({
+      maleCards: [
+        { level: 'light', content: 'old shape' },
+      ],
+      femaleCards: [],
+      positionList: null,
+    });
+  });
+
+  it('rejects unknown levels and empty content', () => {
     expect(
       isCardDeck({
         cards: [
-          { suit: 'joker', rank: '1', level: 'hot', content: '' },
+          { level: 'hot', content: '' },
         ],
       }),
     ).toBe(false);
@@ -79,10 +106,10 @@ describe('card data contract', () => {
     expect(
       parseImportedGameContent({
         maleCards: [
-          { suit: 'spades', rank: 'A', level: 'light', content: 'male one' },
+          { level: 'light', content: 'male one' },
         ],
         femaleCards: [
-          { suit: 'hearts', rank: 'K', level: 'intense', content: 'female one' },
+          { level: 'intense', content: 'female one' },
         ],
         positionList: {
           categories: {
@@ -93,10 +120,10 @@ describe('card data contract', () => {
       }),
     ).toEqual({
       maleCards: [
-        { suit: 'spades', rank: 'A', level: 'light', content: 'male one' },
+        { level: 'light', content: 'male one' },
       ],
       femaleCards: [
-        { suit: 'hearts', rank: 'K', level: 'intense', content: 'female one' },
+        { level: 'intense', content: 'female one' },
       ],
       positionList: {
         categories: {
@@ -113,27 +140,27 @@ describe('card data contract', () => {
         cards: {
           male: {
             cards: [
-              { suit: 'clubs', rank: 'Q', level: 'stimulating', content: 'nested male' },
+              { level: 'stimulating', content: 'nested male' },
             ],
           },
           female: [
-            { suit: 'diamonds', rank: '2', level: 'light', content: 'nested female' },
+            { level: 'light', content: 'nested female' },
           ],
         },
       }),
     ).toEqual({
       maleCards: [
-        { suit: 'clubs', rank: 'Q', level: 'stimulating', content: 'nested male' },
+        { level: 'stimulating', content: 'nested male' },
       ],
       femaleCards: [
-        { suit: 'diamonds', rank: '2', level: 'light', content: 'nested female' },
+        { level: 'light', content: 'nested female' },
       ],
       positionList: null,
     });
   });
 
   it('rejects imported game content with invalid sections', () => {
-    expect(parseImportedGameContent({ maleCards: [{ suit: 'joker' }] })).toBeNull();
+    expect(parseImportedGameContent({ maleCards: [{ level: 'hot', content: 'bad' }] })).toBeNull();
     expect(
       parseImportedGameContent({
         positionList: {
@@ -154,6 +181,11 @@ describe('card data contract', () => {
     expect(drawRandomCard(deck, () => 0.99)).toEqual(deck[1]);
   });
 
+  it('draws a random standard poker face from 52 cards', () => {
+    expect(drawRandomPokerFace(() => 0)).toEqual({ suit: 'spades', rank: 'A' });
+    expect(drawRandomPokerFace(() => 0.999)).toEqual({ suit: 'clubs', rank: 'K' });
+  });
+
   it('exposes labels for every supported suit and level', () => {
     expect(suitLabels.spades).toBe('黑桃');
     expect(levelLabels.stimulating).toBe('升温');
@@ -168,9 +200,9 @@ describe('card data contract', () => {
 
   it('filters cards by selected level', () => {
     const deck = [
-      { suit: 'spades', rank: 'A', level: 'light', content: 'one' },
-      { suit: 'hearts', rank: 'K', level: 'intense', content: 'two' },
-      { suit: 'clubs', rank: '8', level: 'light', content: 'three' },
+      { level: 'light', content: 'one' },
+      { level: 'intense', content: 'two' },
+      { level: 'light', content: 'three' },
     ] as const;
 
     expect(filterCardsByLevel(deck, 'light')).toEqual([deck[0], deck[2]]);

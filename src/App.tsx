@@ -1,6 +1,7 @@
 import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type GenderVersion,
+  type ContentCard,
   type ImportedGameContent,
   type Level,
   type GameState,
@@ -8,6 +9,7 @@ import {
   type PokerCard,
   type Suit,
   drawRandomCard,
+  drawRandomPokerFace,
   filterCardsByLevel,
   getSuitColor,
   genderVersionLabels,
@@ -21,8 +23,6 @@ const assetUrl = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 const cardBackUrl = assetUrl('assets/card-back.png');
 const flipDurationMs = 760;
 const drawDurationMs = 820;
-const shakeCooldownMs = 1150;
-const shakeThreshold = 30;
 const contentStorageKey = 'desire-poker-imported-content-v1';
 type AppView = 'cards' | 'list';
 
@@ -210,7 +210,7 @@ function App() {
   const [selectedPositionCategory, setSelectedPositionCategory] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const positionCategories = useMemo(() => importedContent.positionList?.categories ?? {}, [importedContent]);
-  const decks = useMemo<Record<GenderVersion, PokerCard[]>>(() => ({
+  const decks = useMemo<Record<GenderVersion, ContentCard[]>>(() => ({
     male: importedContent.maleCards,
     female: importedContent.femaleCards,
   }), [importedContent]);
@@ -221,8 +221,7 @@ function App() {
   const hasPositionList = !!positionList && Object.keys(positionCategories).length > 0;
   const activeDeck = useMemo(() => {
     const deck = decks[selectedVersion];
-    const filteredDeck = filterCardsByLevel(deck, selectedLevel);
-    return filteredDeck.length > 0 ? filteredDeck : deck;
+    return filterCardsByLevel(deck, selectedLevel);
   }, [decks, selectedLevel, selectedVersion]);
   const activePositionItems = useMemo(() => (
     positionList && selectedPositionCategory ? positionList[selectedPositionCategory] as string[] : []
@@ -230,8 +229,6 @@ function App() {
   const [currentCard, setCurrentCard] = useState<PokerCard | null>(null);
   const [gameState, setGameState] = useState<GameState>('idle');
   const [drawCount, setDrawCount] = useState(0);
-  const [shakeEnabled, setShakeEnabled] = useState(false);
-  const lastShakeAtRef = useRef(0);
   const drawTimerRef = useRef<number | null>(null);
   const revealTimerRef = useRef<number | null>(null);
 
@@ -241,24 +238,25 @@ function App() {
     }
 
     setCurrentCard((previous) => {
-      if (activeDeck.length === 1) {
-        return activeDeck[0];
-      }
-
-      let next = drawRandomCard(activeDeck);
+      let nextContent = drawRandomCard(activeDeck);
       let guard = 0;
-      while (previous && next === previous && guard < 8) {
-        next = drawRandomCard(activeDeck);
+      while (previous && nextContent.content === previous.content && activeDeck.length > 1 && guard < 8) {
+        nextContent = drawRandomCard(activeDeck);
         guard += 1;
       }
-      return next;
+
+      return {
+        ...drawRandomPokerFace(),
+        level: nextContent.level,
+        content: nextContent.content,
+      };
     });
   }, [activeDeck]);
 
   const drawCard = useCallback(() => {
     if (activeDeck.length === 0 || gameState === 'drawing' || gameState === 'flipping') {
       if (activeDeck.length === 0) {
-        setImportStatus('当前版本还没有可抽取的牌，请先导入或切换版本。');
+        setImportStatus('当前版本和程度没有可抽取的文案，请先导入、切换版本或切换程度。');
       }
       return;
     }
@@ -374,30 +372,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleMotion = (event: DeviceMotionEvent) => {
-      const acceleration = event.accelerationIncludingGravity;
-      if (!acceleration) {
-        return;
-      }
-
-      const x = acceleration.x ?? 0;
-      const y = acceleration.y ?? 0;
-      const z = acceleration.z ?? 0;
-      const strength = Math.abs(x) + Math.abs(y) + Math.abs(z);
-      const now = Date.now();
-
-      if (hasActiveDeck && strength > shakeThreshold && now - lastShakeAtRef.current > shakeCooldownMs) {
-        lastShakeAtRef.current = now;
-        setShakeEnabled(true);
-        drawCard();
-      }
-    };
-
-    window.addEventListener('devicemotion', handleMotion);
-    return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [drawCard, hasActiveDeck]);
-
-  useEffect(() => {
     if (selectedPositionCategory && positionCategories[selectedPositionCategory]) {
       return;
     }
@@ -430,9 +404,7 @@ function App() {
           <p>
             {!hasAnyCards
               ? '先导入本地 JSON'
-              : shakeEnabled
-                ? '摇动已触发，也可以点按钮抽牌'
-                : '摇一摇或点按钮抽牌'}
+              : '点击按钮抽牌'}
           </p>
         </div>
         <div className="round-counter">

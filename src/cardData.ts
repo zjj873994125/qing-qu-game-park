@@ -15,8 +15,13 @@ export interface PokerCard {
   content: string;
 }
 
+export interface ContentCard {
+  level: Level;
+  content: string;
+}
+
 export interface CardDeck {
-  cards: PokerCard[];
+  cards: ContentCard[];
 }
 
 export interface PositionList {
@@ -25,8 +30,8 @@ export interface PositionList {
 }
 
 export interface ImportedGameContent {
-  maleCards: PokerCard[];
-  femaleCards: PokerCard[];
+  maleCards: ContentCard[];
+  femaleCards: ContentCard[];
   positionList: PositionList | null;
 }
 
@@ -54,22 +59,26 @@ export function getSuitColor(suit: Suit): SuitColor {
   return suit === 'hearts' || suit === 'diamonds' ? 'red' : 'black';
 }
 
+export const standardPokerFaces = suits.flatMap((suit) => (
+  ranks.map((rank) => ({ suit, rank }))
+));
+
+function isContentCard(value: unknown): value is ContentCard {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    levels.includes((value as ContentCard).level) &&
+    typeof (value as ContentCard).content === 'string' &&
+    (value as ContentCard).content.trim().length > 0
+  );
+}
+
 export function isCardDeck(value: unknown): value is CardDeck {
   if (!value || typeof value !== 'object' || !Array.isArray((value as CardDeck).cards)) {
     return false;
   }
 
-  return (value as CardDeck).cards.every((card) => {
-    return (
-      card &&
-      typeof card === 'object' &&
-      suits.includes((card as PokerCard).suit) &&
-      ranks.includes((card as PokerCard).rank) &&
-      levels.includes((card as PokerCard).level) &&
-      typeof (card as PokerCard).content === 'string' &&
-      (card as PokerCard).content.trim().length > 0
-    );
-  });
+  return (value as CardDeck).cards.every(isContentCard);
 }
 
 export function isPositionList(value: unknown): value is PositionList {
@@ -103,13 +112,13 @@ function firstDefined(...values: unknown[]): unknown {
   return values.find((value) => value !== undefined);
 }
 
-function normalizeDeckValue(value: unknown): PokerCard[] | null {
+function normalizeDeckValue(value: unknown): ContentCard[] | null {
   if (isCardDeck(value)) {
-    return value.cards;
+    return value.cards.map(({ level, content }) => ({ level, content }));
   }
 
   if (Array.isArray(value) && isCardDeck({ cards: value })) {
-    return value;
+    return value.map(({ level, content }) => ({ level, content }));
   }
 
   return null;
@@ -149,7 +158,7 @@ export function parseImportedGameContent(value: unknown): ImportedGameContent | 
   };
 }
 
-export function drawRandomCard<T extends PokerCard>(
+export function drawRandomCard<T>(
   deck: readonly T[],
   random: () => number = Math.random,
 ): T {
@@ -161,7 +170,11 @@ export function drawRandomCard<T extends PokerCard>(
   return deck[index];
 }
 
-export function filterCardsByLevel<T extends PokerCard>(deck: readonly T[], level: Level): T[] {
+export function drawRandomPokerFace(random: () => number = Math.random): Pick<PokerCard, 'suit' | 'rank'> {
+  return drawRandomCard(standardPokerFaces, random);
+}
+
+export function filterCardsByLevel<T extends ContentCard>(deck: readonly T[], level: Level): T[] {
   return deck.filter((card) => card.level === level);
 }
 

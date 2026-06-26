@@ -4,9 +4,10 @@
 
 ## 功能
 
-- 摇一摇或点击按钮抽取扑克牌。
+- 点击按钮抽取扑克牌。
 - 先抽到牌背，再点击开牌。
 - 牌面文案默认打码，赢家点击后显示文案。
+- 牌面花色和点数每次从 52 张标准扑克牌中随机生成，和文案不绑定。
 - 支持男生版、女生版两套牌组。
 - 支持轻度、升温、强烈三个程度。
 - 支持列表文案分类浏览。
@@ -75,16 +76,12 @@ iOS Safari 可以导入 `.json` 文件。文件可以放在“文件”App、iCl
 {
   "maleCards": [
     {
-      "suit": "spades",
-      "rank": "A",
       "level": "light",
       "content": "这里填写文案"
     }
   ],
   "femaleCards": [
     {
-      "suit": "hearts",
-      "rank": "K",
       "level": "intense",
       "content": "这里填写文案"
     }
@@ -102,14 +99,14 @@ iOS Safari 可以导入 `.json` 文件。文件可以放在“文件”App、iCl
 
 字段说明：
 
-- `maleCards`：男生版牌组数组。
-- `femaleCards`：女生版牌组数组。
+- `maleCards`：男生版文案池数组。
+- `femaleCards`：女生版文案池数组。
 - `positionList.categories`：列表分类枚举，key 是内部分类名，value 是页面显示名。
 - `positionList[分类名]`：和 `categories` 中 key 同名的字符串数组。
-- `suit`：`spades`、`hearts`、`diamonds`、`clubs`。
-- `rank`：`A`、`2` 到 `10`、`J`、`Q`、`K`。
 - `level`：`light`、`stimulating`、`intense`。
 - `content`：牌面文案，不能为空。
+
+抽牌时会先从当前版本和当前程度的文案池里随机取一条文案，再独立随机生成一张 52 张标准扑克牌里的牌面。旧 JSON 如果还带 `suit`、`rank` 也可以导入，但这两个字段会被忽略。
 
 ## 已有文件
 
